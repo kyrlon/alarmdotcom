@@ -40,10 +40,15 @@ async def async_setup_entry(
     hub: AlarmHub = hass.data[DOMAIN][config_entry.entry_id][DATA_HUB]
 
     # Log discovered devices for debugging
+    #
+    # hub.api.garage_doors/gates are GarageDoorController/GateController
+    # instances - they're iterable but don't implement __len__, so len()
+    # on them directly raises TypeError and aborts this entire function
+    # (no cover entities get created at all). Wrap in list() to count them.
     log.debug(
         "Setting up cover platform. Found %d garage doors and %d gates.",
-        len(hub.api.garage_doors),
-        len(hub.api.gates),
+        len(list(hub.api.garage_doors)),
+        len(list(hub.api.gates)),
     )
     for device in hub.api.garage_doors:
         log.debug("  - Garage door: %s (ID: %s)", device.name, device.id)
