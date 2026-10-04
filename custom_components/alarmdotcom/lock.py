@@ -188,6 +188,29 @@ class AdcLockEntity(AdcEntity[AdcManagedDeviceT, AdcControllerT], LockEntity):
         log.warning("Wrong code entered for lock %s.", self.resource_id)
         return False
 
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return additional state attributes, including battery status.
+
+        battery_level_pct and battery_level_classification come straight
+        from BaseStatefulDeviceAttributes in the SDK but aren't currently
+        surfaced anywhere in this integration - sensor_battery.py has a
+        battery sensor stubbed out, but it's commented out and references
+        an older field set (battery_alert/battery_critical/battery_low)
+        that no longer matches the current SDK's actual schema. Exposing
+        the real, current fields here as entity attributes is a smaller
+        change than resurrecting that whole sensor platform, and makes
+        low-battery lock automations possible without it.
+        """
+        attrs = self.hub.api.locks[self.resource_id].attributes
+        classification = attrs.battery_level_classification
+        return {
+            "battery_level_pct": attrs.battery_level_pct,
+            "battery_level_classification": classification.name
+            if classification is not None
+            else None,
+        }
+
     @callback
     def initiate_state(self) -> None:
         """Initiate entity state."""
